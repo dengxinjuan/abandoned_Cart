@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StyleHub - Premium Store</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  
+  <!-- External Stylesheet -->
+  <link href="styles.css" rel="stylesheet">
+
+  <!-- OneSignal SDK -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "YOUR_ONESIGNAL_APP_ID",
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <!-- Header Section -->
+    <div class="header">
+      <h1><i class="fas fa-gem"></i> StyleHub</h1>
+      <p>Premium Fashion & Accessories</p>
+    </div>
+
+    <!-- Cart Section -->
+    <div class="cart-section">
+      <div class="cart-header">
+        <div class="cart-title">
+          <div class="cart-icon">
+            <i class="fas fa-shopping-cart"></i>
+          </div>
+          <span>Your Cart</span>
+        </div>
+        <div class="cart-count" id="cart-count">0</div>
+      </div>
+      <ul class="cart-items" id="cart-items">
+        <li style="opacity: 0.6; font-style: italic; color: #666; list-style: none; text-align: center;">Your cart is empty</li>
+      </ul>
+    </div>
+
+    <!-- Products Section -->
+    <div class="products-section">
+      <h2 class="products-title"><i class="fas fa-star"></i> Featured Products</h2>
+      <div class="products-grid">
+        <div class="product">
+          <img class="product-image" src="images/shoes.jpg" alt="Premium Sneakers" />
+          <h3><i class="fas fa-running"></i> Premium Sneakers</h3>
+          <div class="product-price">$129.99</div>
+          <button class="add-to-cart-btn" onclick="addToCart('Premium Sneakers','https://your-site.com/images/shoes.jpg')">
+            <i class="fas fa-cart-plus"></i> Add to Cart
+          </button>
+        </div>
+
+        <div class="product">
+          <img class="product-image" src="images/bag.jpg" alt="Designer Bag" />
+          <h3><i class="fas fa-handbag"></i> Designer Bag</h3>
+          <div class="product-price">$89.99</div>
+          <button class="add-to-cart-btn" onclick="addToCart('Designer Bag','https://your-site.com/images/bag.jpg')">
+            <i class="fas fa-cart-plus"></i> Add to Cart
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ===================================================================
+     * 🛒 ABANDONED CART SYSTEM WITH ONESIGNAL INTEGRATION
+     * ===================================================================
+     * 
+     * This implementation follows OneSignal's official abandoned cart 
+     * documentation using Custom Events:
+     * https://documentation.onesignal.com/docs/en/abandoned-cart#using-custom-events
+     * 
+     * 📋 WHAT IS ABANDONED CART?
+     * ───────────────────────────
+     * Abandoned cart refers to when users add items to their shopping cart
+     * but leave without completing the purchase. This system automatically
+     * tracks cart activity and enables targeted re-engagement campaigns.
+     * 
+     * 🎯 HOW THIS SYSTEM WORKS:
+     * ──────────────────────────
+     * 1. USER ADDS ITEM → Triggers "cart_updated" event with cart details
+     * 2. USER LEAVES SITE → OneSignal Journey waits (e.g., 1 hour)
+     * 3. STILL ABANDONED → Sends personalized push notification
+     * 4. USER PURCHASES → Triggers "cart_updated" with empty cart & reason: "purchase"
+     * 
+     * 📊 ONESIGNAL CUSTOM EVENT FORMAT:
+     * ──────────────────────────────────
+     * Event Name: "cart_updated"
+     * Properties: {
+     *   cartURL: "https://yoursite.com/cart",     // Link to cart page
+     *   cart: [                                   // Array of product objects
+     *     {
+     *       cartImageURL: "https://...",          // Product image URL
+     *       cartProductName: "Premium Sneakers",  // Product name
+     *       cartQuantity: "1",                    // Quantity as string
+     *       cartPrice: "$129.99"                  // Price with currency
+     *     }
+     *   ],
+     *   reason: "add" | "remove" | "purchase"     // Action that triggered event
+     * }
+     * 
+     * 🚀 ONESIGNAL DASHBOARD SETUP REQUIRED:
+     * ───────────────────────────────────────
+     * To complete the abandoned cart system, you need to:
+     * 
+     * 1. CREATE JOURNEY (Journeys > New Journey):
+     *    - Entry Rule: Custom Event "cart_updated" 
+     *    - Property Filter: "cart.*.*" exists (non-empty cart)
+     *    - Exit Rule: Custom Event "cart_updated" (user re-enters cart)
+     * 
+     * 2. ADD JOURNEY STEPS:
+     *    - Wait Step: 1 Hour (or desired delay)
+     *    - Push Message: Use template with personalization
+     * 
+     * 3. CREATE MESSAGE TEMPLATE (Messages > Templates):
+     *    - Title: "Your {{journey.event.cart_updated.data.cartProductName}} is waiting!"
+     *    - Message: "Don't miss out on your items! Complete your purchase now."
+     *    - Image: {{journey.event.cart_updated.data.cartImageURL}}
+     *    - Launch URL: {{journey.event.cart_updated.data.cartURL}}
+     * 
+     * 💡 PERSONALIZATION FEATURES:
+     * ─────────────────────────────
+     * - Shows actual product names and images in notifications
+     * - Tracks multiple items in cart simultaneously
+     * - Prevents notifications after purchase completion
+     * - Supports different time delays for different user segments
+     * 
+     * 📈 PROVEN RESULTS:
+     * ───────────────────
+     * - MuteSix: 182% revenue increase
+     * - Princeton Review: 400% conversion increase  
+     * - Evino: 12% revenue increase
+     * 
+     * ===================================================================
+     */
+
+    const cart = [];
+    
+    /**
+     * 📦 PRODUCT DATABASE
+     * ────────────────────
+     * Contains product information including prices and high-quality images
+     * from Unsplash. These URLs are used in OneSignal notifications for
+     * visual engagement and match the official documentation examples.
+     */
+    const productData = {
+      'Premium Sneakers': {
+        price: '$129.99',
+        imageURL: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff'
+      },
+      'Designer Bag': {
+        price: '$89.99',
+        imageURL: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f'
+      }
+    };
+
+    /**
+     * 🛒 ADD TO CART FUNCTION
+     * ────────────────────────
+     * Handles adding items to cart and triggers abandoned cart tracking.
+     * This is the main entry point for the abandoned cart system.
+     * 
+     * @param {string} productName - Name of the product being added
+     * @param {string} productImage - Local image path (for display)
+     */
+    function addToCart(productName, productImage) {
+      // 1. Update cart with detailed product info
+      const product = productData[productName];
+      cart.push({ 
+        name: productName, 
+        image: productImage,
+        imageURL: product.imageURL,
+        price: product.price,
+        quantity: 1
+      });
+      
+      renderCart();
+
+      // 2. Add button feedback
+      event.target.innerHTML = '<i class="fas fa-check"></i> Added!';
+      event.target.style.background = 'linear-gradient(135deg, #51cf66, #40c057)';
+      
+      setTimeout(() => {
+        event.target.innerHTML = '<i class="fas fa-cart-plus"></i> Add to Cart';
+        event.target.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
+      }, 1500);
+
+      // 3. Track cart update with correct OneSignal syntax
+      trackCartUpdate('add');
+    }
+
+    function renderCart() {
+      document.getElementById("cart-count").innerText = cart.length;
+
+      const list = document.getElementById("cart-items");
+      list.innerHTML = "";
+
+      if (cart.length === 0) {
+        const emptyMessage = document.createElement("li");
+        emptyMessage.textContent = "Your cart is empty";
+        emptyMessage.style.cssText = "opacity: 0.6; font-style: italic; color: #666; list-style: none; text-align: center; background: none; box-shadow: none; padding: 10px;";
+        list.appendChild(emptyMessage);
+        return;
+      }
+
+      cart.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.className = "cart-item";
+        li.innerHTML = `
+          <i class="fas fa-check-circle" style="margin-right: 10px;"></i>
+          ${item.name}
+          <button onclick="removeFromCart(${index})" style="
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-left: 10px;
+            cursor: pointer;
+            float: right;
+            font-size: 0.8rem;
+          ">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+        
+        // Add animation delay for staggered effect
+        li.style.animationDelay = `${index * 0.1}s`;
+        list.appendChild(li);
+      });
+    }
+
+    /**
+     * 🗑️ REMOVE FROM CART FUNCTION  
+     * ──────────────────────────────
+     * Removes item from cart and updates abandoned cart tracking.
+     * This prevents users from receiving notifications for removed items.
+     * 
+     * @param {number} index - Index of the item to remove
+     */
+    function removeFromCart(index) {
+      cart.splice(index, 1);
+      renderCart();
+      
+      // Track cart update when item is removed
+      trackCartUpdate('remove');
+    }
+    
+    /**
+     * 📡 ONESIGNAL CART TRACKING FUNCTION
+     * ────────────────────────────────────
+     * This is the CORE function of the abandoned cart system. It sends
+     * cart data to OneSignal using the official Custom Events format.
+     * 
+     * IMPORTANT: This matches exactly with OneSignal's documentation:
+     * https://documentation.onesignal.com/docs/en/abandoned-cart#using-custom-events
+     * 
+     * When called, this function:
+     * 1. Formats cart data according to OneSignal's schema
+     * 2. Sends "cart_updated" custom event to OneSignal
+     * 3. Triggers OneSignal Journey (if set up in dashboard)
+     * 4. Enables personalized abandoned cart notifications
+     * 
+     * @param {string} reason - Why the event was triggered:
+     *   - "add": User added item to cart
+     *   - "remove": User removed item from cart  
+     *   - "purchase": User completed purchase (empty cart)
+     */
+    function trackCartUpdate(reason) {
+      const properties = {
+        cartURL: window.location.origin + "/cart", // Link to shopping cart page
+        cart: cart.map(item => ({
+          cartImageURL: item.imageURL,
+          cartProductName: item.name,
+          cartQuantity: item.quantity.toString(),
+          cartPrice: item.price
+        })),
+        reason: reason
+      };
+
+      OneSignalDeferred.push(function(OneSignal) {
+        // Using correct OneSignal.User.trackEvent syntax from documentation
+        OneSignal.User.trackEvent("cart_updated", properties);
+        console.log("Cart updated event sent:", reason, properties);
+      });
+    }
+    
+    /**
+     * 💳 PURCHASE COMPLETION TRACKING
+     * ────────────────────────────────
+     * Call this function when a user successfully completes their purchase.
+     * It sends an empty cart with reason "purchase" to OneSignal, which:
+     * 
+     * 1. Stops any pending abandoned cart notifications
+     * 2. Records the successful conversion
+     * 3. Can trigger purchase confirmation messages
+     * 4. Prevents false positive abandoned cart alerts
+     * 
+     * USAGE: Attach this to your checkout success page or payment completion callback
+     * Example: document.querySelector('#checkout-success').onclick = trackPurchase;
+     */
+    function trackPurchase() {
+      const properties = {
+        cartURL: window.location.origin + "/cart",
+        cart: [], // Empty cart after purchase
+        reason: "purchase"
+      };
+
+      OneSignalDeferred.push(function(OneSignal) {
+        OneSignal.User.trackEvent("cart_updated", properties);
+        console.log("Purchase completed event sent:", properties);
+      });
+    }
+
+    /**
+     * 🚀 INITIALIZATION
+     * ──────────────────
+     * Initialize the cart display and prepare the abandoned cart system.
+     * The system is now ready to track user behavior and send data to OneSignal.
+     */
+    // Initialize cart display
+    renderCart();
+    
+    /**
+     * 💡 NEXT STEPS TO COMPLETE SETUP:
+     * ─────────────────────────────────
+     * 1. Replace "YOUR_ONESIGNAL_APP_ID" with your actual OneSignal App ID
+     * 2. Set up Journey in OneSignal Dashboard (see detailed comments above)
+     * 3. Create message template with personalization variables
+     * 4. Connect trackPurchase() to your actual checkout process:
+     *    
+     *    Example integration:
+     *    document.querySelector('#checkout-btn').addEventListener('click', trackPurchase);
+     *    
+     * 5. Test the system by adding items and waiting for notifications
+     * 6. Monitor results in OneSignal Dashboard > Analytics
+     */
+  </script>
+
+
+</body>
+</html>
