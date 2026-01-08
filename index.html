@@ -280,21 +280,37 @@
      *   - "purchase": User completed purchase (empty cart)
      */
     function trackCartUpdate(reason) {
+      // Get first item for root-level properties (for OneSignal templates)
+      const firstItem = cart.length > 0 ? cart[0] : null;
+      
       const properties = {
-        cartURL: window.location.origin + "/cart", // Link to shopping cart page
+        cartURL: window.location.origin + "/cart",
+        
+        // ✅ Root-level properties for OneSignal templates
+        cartImageURL: firstItem ? firstItem.imageURL : "",
+        cartProductName: firstItem ? firstItem.name : "", 
+        cartQuantity: firstItem ? firstItem.quantity.toString() : "0",
+        cartPrice: firstItem ? firstItem.price : "",
+        
+        // Keep full cart array for multiple items (optional)
         cart: cart.map(item => ({
           cartImageURL: item.imageURL,
           cartProductName: item.name,
           cartQuantity: item.quantity.toString(),
           cartPrice: item.price
         })),
+        
         reason: reason
       };
 
       OneSignalDeferred.push(function(OneSignal) {
-        // Using correct OneSignal.User.trackEvent syntax from documentation
         OneSignal.User.trackEvent("cart_updated", properties);
-        console.log("Cart updated event sent:", reason, properties);
+        console.log("✅ Cart event sent with root-level data:", properties);
+        console.log("📱 Template data:", {
+          cartProductName: properties.cartProductName,
+          cartImageURL: properties.cartImageURL,
+          cartPrice: properties.cartPrice
+        });
       });
     }
     
@@ -315,13 +331,20 @@
     function trackPurchase() {
       const properties = {
         cartURL: window.location.origin + "/cart",
+        
+        // Empty root-level properties after purchase
+        cartImageURL: "",
+        cartProductName: "",
+        cartQuantity: "0", 
+        cartPrice: "",
+        
         cart: [], // Empty cart after purchase
         reason: "purchase"
       };
 
       OneSignalDeferred.push(function(OneSignal) {
         OneSignal.User.trackEvent("cart_updated", properties);
-        console.log("Purchase completed event sent:", properties);
+        console.log("✅ Purchase completed event sent:", properties);
       });
     }
 
