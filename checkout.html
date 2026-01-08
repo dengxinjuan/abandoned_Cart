@@ -315,6 +315,10 @@
             </div>
           </div>
 
+          <button type="button" class="complete-order-btn" onclick="fillTestData()" style="background: linear-gradient(135deg, #ff6b6b, #feca57); margin-bottom: 15px;">
+            <i class="fas fa-flask"></i> Fill Test Data
+          </button>
+          
           <button type="submit" class="complete-order-btn">
             <i class="fas fa-lock"></i> Complete Order
           </button>
@@ -461,6 +465,21 @@
     document.getElementById('cvv').addEventListener('input', function(e) {
       this.value = this.value.replace(/[^0-9]/gi, '');
     });
+
+    // Fill test data for easy testing
+    function fillTestData() {
+      document.getElementById('email').value = 'test@example.com';
+      document.getElementById('fullName').value = 'John Doe';
+      document.getElementById('address').value = '123 Test Street';
+      document.getElementById('city').value = 'Test City';
+      document.getElementById('zip').value = '12345';
+      document.getElementById('cardNumber').value = '4111 1111 1111 1111';
+      document.getElementById('expiry').value = '12/25';
+      document.getElementById('cvv').value = '123';
+      
+      // Show success message
+      alert('✅ Test data filled! Now click "Complete Order" to test the purchase flow.');
+    }
 
     // Initialize page
     if (cart.length === 0) {
