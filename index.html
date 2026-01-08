@@ -46,6 +46,11 @@
       <ul class="cart-items" id="cart-items">
         <li style="opacity: 0.6; font-style: italic; color: #666; list-style: none; text-align: center;">Your cart is empty</li>
       </ul>
+      <div class="checkout-button-container" id="checkout-container" style="display: none; text-align: center; margin-top: 20px;">
+        <button class="checkout-btn" onclick="goToCheckout()">
+          <i class="fas fa-credit-card"></i> Proceed to Checkout
+        </button>
+      </div>
     </div>
 
     <!-- Products Section -->
@@ -53,19 +58,28 @@
       <h2 class="products-title"><i class="fas fa-star"></i> Featured Products</h2>
       <div class="products-grid">
         <div class="product">
-          <img class="product-image" src="images/shoes.jpg" alt="Premium Sneakers" />
+          <img class="product-image" src="https://images.unsplash.com/photo-1542291026-7eec264c27ff" alt="Premium Sneakers" />
           <h3><i class="fas fa-running"></i> Premium Sneakers</h3>
           <div class="product-price">$129.99</div>
-          <button class="add-to-cart-btn" onclick="addToCart('Premium Sneakers','https://your-site.com/images/shoes.jpg')">
+          <button class="add-to-cart-btn" onclick="addToCart('Premium Sneakers')">
             <i class="fas fa-cart-plus"></i> Add to Cart
           </button>
         </div>
 
         <div class="product">
-          <img class="product-image" src="images/bag.jpg" alt="Designer Bag" />
-          <h3><i class="fas fa-handbag"></i> Designer Bag</h3>
-          <div class="product-price">$89.99</div>
-          <button class="add-to-cart-btn" onclick="addToCart('Designer Bag','https://your-site.com/images/bag.jpg')">
+          <img class="product-image" src="https://images.unsplash.com/photo-1502920917128-1aa500764cbd" alt="Professional Camera" />
+          <h3><i class="fas fa-camera"></i> Professional Camera</h3>
+          <div class="product-price">$299.99</div>
+          <button class="add-to-cart-btn" onclick="addToCart('Professional Camera')">
+            <i class="fas fa-cart-plus"></i> Add to Cart
+          </button>
+        </div>
+
+        <div class="product">
+          <img class="product-image" src="https://images.unsplash.com/photo-1484704849700-f032a568e944" alt="Wireless Headphones" />
+          <h3><i class="fas fa-headphones"></i> Wireless Headphones</h3>
+          <div class="product-price">$179.99</div>
+          <button class="add-to-cart-btn" onclick="addToCart('Wireless Headphones')">
             <i class="fas fa-cart-plus"></i> Add to Cart
           </button>
         </div>
@@ -147,7 +161,8 @@
      * ===================================================================
      */
 
-    const cart = [];
+    // Load cart from localStorage or initialize empty
+    let cart = JSON.parse(localStorage.getItem('stylehub_cart') || '[]');
     
     /**
      * 📦 PRODUCT DATABASE
@@ -161,9 +176,13 @@
         price: '$129.99',
         imageURL: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff'
       },
-      'Designer Bag': {
-        price: '$89.99',
-        imageURL: 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f'
+      'Professional Camera': {
+        price: '$299.99',
+        imageURL: 'https://images.unsplash.com/photo-1502920917128-1aa500764cbd'
+      },
+      'Wireless Headphones': {
+        price: '$179.99',
+        imageURL: 'https://images.unsplash.com/photo-1484704849700-f032a568e944'
       }
     };
 
@@ -174,19 +193,24 @@
      * This is the main entry point for the abandoned cart system.
      * 
      * @param {string} productName - Name of the product being added
-     * @param {string} productImage - Local image path (for display)
      */
-    function addToCart(productName, productImage) {
-      // 1. Update cart with detailed product info
+    function addToCart(productName) {
+      // 1. Update cart with detailed product info from productData
       const product = productData[productName];
+      if (!product) {
+        console.error(`Product "${productName}" not found in productData`);
+        return;
+      }
+      
       cart.push({ 
         name: productName, 
-        image: productImage,
-        imageURL: product.imageURL,
+        imageURL: product.imageURL,  // Use consistent Unsplash URL for everything
         price: product.price,
         quantity: 1
       });
       
+      // Save cart to localStorage
+      localStorage.setItem('stylehub_cart', JSON.stringify(cart));
       renderCart();
 
       // 2. Add button feedback
@@ -206,6 +230,7 @@
       document.getElementById("cart-count").innerText = cart.length;
 
       const list = document.getElementById("cart-items");
+      const checkoutContainer = document.getElementById("checkout-container");
       list.innerHTML = "";
 
       if (cart.length === 0) {
@@ -213,8 +238,12 @@
         emptyMessage.textContent = "Your cart is empty";
         emptyMessage.style.cssText = "opacity: 0.6; font-style: italic; color: #666; list-style: none; text-align: center; background: none; box-shadow: none; padding: 10px;";
         list.appendChild(emptyMessage);
+        checkoutContainer.style.display = "none";
         return;
       }
+
+      // Show checkout button when cart has items
+      checkoutContainer.style.display = "block";
 
       cart.forEach((item, index) => {
         const li = document.createElement("li");
@@ -253,6 +282,9 @@
      */
     function removeFromCart(index) {
       cart.splice(index, 1);
+      
+      // Save cart to localStorage
+      localStorage.setItem('stylehub_cart', JSON.stringify(cart));
       renderCart();
       
       // Track cart update when item is removed
@@ -284,7 +316,7 @@
       const firstItem = cart.length > 0 ? cart[0] : null;
       
       const properties = {
-        cartURL: window.location.origin + "/cart",
+        cartURL: window.location.origin + "/abandoned_Cart/checkout.html",
         
         // ✅ Root-level properties for OneSignal templates
         cartImageURL: firstItem ? firstItem.imageURL : "",
@@ -330,7 +362,7 @@
      */
     function trackPurchase() {
       const properties = {
-        cartURL: window.location.origin + "/cart",
+        cartURL: window.location.origin + "/abandoned_Cart/checkout.html",
         
         // Empty root-level properties after purchase
         cartImageURL: "",
@@ -346,6 +378,20 @@
         OneSignal.User.trackEvent("cart_updated", properties);
         console.log("✅ Purchase completed event sent:", properties);
       });
+    }
+
+    /**
+     * 🛒 CHECKOUT NAVIGATION
+     * ───────────────────────
+     * Navigate to checkout page with cart data
+     */
+    function goToCheckout() {
+      if (cart.length === 0) {
+        alert('Your cart is empty!');
+        return;
+      }
+      // Navigate to checkout page
+      window.location.href = 'checkout.html';
     }
 
     /**
